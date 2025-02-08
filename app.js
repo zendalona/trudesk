@@ -13,23 +13,23 @@
  *  Copyright (c) 2014-2022 Trudesk, Inc. All rights reserved.
  */
 
-const async = require('async')
-const path = require('path')
-const fs = require('fs')
-const winston = require('./src/logger')
-const nconf = require('nconf')
-const Chance = require('chance')
-const chance = new Chance()
-const pkg = require('./package.json')
+const async = require('async');
+const path = require('path');
+const fs = require('fs');
+const winston = require('./src/logger');
+const nconf = require('nconf');
+const Chance = require('chance');
+const chance = new Chance();
+const pkg = require('./package.json');
 // `const memory = require('./src/memory');
 
-const isDocker = process.env.TRUDESK_DOCKER || false
+const isDocker = process.env.TRUDESK_DOCKER || false;
 
-global.forks = []
+global.forks = [];
 
-nconf.argv().env()
+nconf.argv().env();
 
-global.env = process.env.NODE_ENV || 'development'
+global.env = process.env.NODE_ENV || 'development';
 
 if (!process.env.FORK) {
   winston.info('    .                              .o8                     oooo')
@@ -42,44 +42,44 @@ if (!process.env.FORK) {
   winston.info('==========================================================================')
   winston.info('trudesk v' + pkg.version + ' Copyright (C) 2014-2023 Chris Brame')
   winston.info('')
-  winston.info('Running in: ' + global.env)
-  winston.info('Server Time: ' + new Date())
+  winston.info('Running in: ' + global.env);
+  winston.info('Server Time: ' + new Date());
 }
 
-let configFile = path.join(__dirname, '/config.yml')
+let configFile = path.join(__dirname, '/config.yml');
 
 if (nconf.get('config')) {
-  configFile = path.resolve(__dirname, nconf.get('config'))
+  configFile = path.resolve(__dirname, nconf.get('config'));
 }
 
 // Make sure we convert the .json file to .yml
-checkForOldConfig()
+checkForOldConfig();
 
-const configExists = fs.existsSync(configFile)
+const configExists = fs.existsSync(configFile);
 
-function launchInstallServer () {
+function launchInstallServer() {
   // Load the defaults for the install server
   nconf.defaults({
     tokens: {
       secret: chance.hash() + chance.md5()
     }
-  })
+  });
 
-  const ws = require('./src/webserver')
+  const ws = require('./src/webserver');
   ws.installServer(function () {
-    return winston.info('Trudesk Install Server Running...')
-  })
+    return winston.info('Trudesk Install Server Running...');
+  });
 }
 
 if (nconf.get('install') || (!configExists && !isDocker)) {
-  launchInstallServer()
+  launchInstallServer();
 }
 
-function loadConfig () {
+function loadConfig() {
   nconf.file({
     file: configFile,
     format: require('nconf-yaml')
-  })
+  });
 
   // Must load after file
   nconf.defaults({
@@ -88,26 +88,26 @@ function loadConfig () {
       secret: chance.hash() + chance.md5(),
       expires: 900
     }
-  })
+  });
 }
 
-function checkForOldConfig () {
-  const oldConfigFile = path.join(__dirname, '/config.json')
+function checkForOldConfig() {
+  const oldConfigFile = path.join(__dirname, '/config.json');
   if (fs.existsSync(oldConfigFile)) {
     // Convert config to yaml.
-    const content = fs.readFileSync(oldConfigFile)
-    const YAML = require('yaml')
-    const data = JSON.parse(content)
+    const content = fs.readFileSync(oldConfigFile);
+    const YAML = require('yaml');
+    const data = JSON.parse(content);
 
-    fs.writeFileSync(configFile, YAML.stringify(data))
+    fs.writeFileSync(configFile, YAML.stringify(data));
 
     // Rename the old config.json to config.json.bk
-    fs.renameSync(oldConfigFile, path.join(__dirname, '/config.json.bk'))
+    fs.renameSync(oldConfigFile, path.join(__dirname, '/config.json.bk'));
   }
 }
 
-function start () {
-  if (!isDocker) loadConfig()
+function start() {
+  if (!isDocker) loadConfig();
   if (isDocker) {
     // Load some defaults for JWT token that is missing when using docker
     const jwt = process.env.TRUDESK_JWTSECRET
@@ -116,22 +116,22 @@ function start () {
         secret: jwt || chance.hash() + chance.md5(),
         expires: 900
       }
-    })
+    });
   }
 
-  const _db = require('./src/database')
+  const _db = require('./src/database');
 
   _db.init(function (err, db) {
     if (err) {
-      winston.error('FETAL: ' + err.message)
-      winston.warn('Retrying to connect to MongoDB in 10secs...')
+      winston.error('FETAL: ' + err.message);
+      winston.warn('Retrying to connect to MongoDB in 10secs...');
       return setTimeout(function () {
-        _db.init(dbCallback)
-      }, 10000)
+        _db.init(dbCallback);
+      }, 10000);
     } else {
-      dbCallback(err, db)
+      dbCallback(err, db);
     }
-  })
+  });
 }
 
 function launchServer (db) {
